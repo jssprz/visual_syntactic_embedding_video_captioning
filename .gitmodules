@@ -1,0 +1,3 @@
+[submodule "video_description_eval"]
+	path = video_description_eval
+	url = https://github.com/jssprz/video_description_eval.git
