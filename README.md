@@ -96,7 +96,7 @@ python evaluate.py -gen results/MSR-VTT/predictions.txt -ref data/MSR-VTT/test_r
 ```
 
 ## <a name="qualitative"></a>Qualitative Results
-<img src="https://users.dcc.uchile.cl/~jeperez/media/2020/AVSSN_examples.png" alt="qualitative results" height="400"/>
+<img src="https://users.dcc.uchile.cl/~jeperez/media/2021/SemSynAN_examples.png" alt="qualitative results" height="400"/>
 
 ## <a name="quantitative"></a>Quantitative Results
 
