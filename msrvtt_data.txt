@@ -1,0 +1,7 @@
+https://s06.imfd.cl/04/github-data/SemSynAN/MSR-VTT/val_references.txt
+https://s06.imfd.cl/04/github-data/SemSynAN/MSR-VTT/test_references.txt
+https://s06.imfd.cl/04/github-data/SemSynAN/MSR-VTT/config.ini
+https://s06.imfd.cl/04/github-data/SemSynAN/MSR-VTT/corpus.pkl
+https://s06.imfd.cl/04/github-data/SemSynAN/MSR-VTT/resnext_eco.npy
+https://s06.imfd.cl/04/github-data/SemSynAN/MSR-VTT/tag_feats.npy
+https://s06.imfd.cl/04/github-data/SemSynAN/MSR-VTT/linspace16_resnext101_c3d_r1plus2d18.h5
