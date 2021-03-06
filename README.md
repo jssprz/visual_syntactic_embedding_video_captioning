@@ -35,6 +35,7 @@ Video captioning is the task of predicting a semantic and syntactically correct 
 1. Python 3.6
 2. PyTorch 1.2.0
 3. NumPy
+4. h5py
 
 ## <a name="manual"></a>Manual
 
