@@ -354,7 +354,8 @@ class SemSynCNDecoder(nn.Module):
                  embedding_size, hidden_size, rnn_in_size, rnn_hidden_size, vocab, device, 
                  encoder_num_layers, encoder_bidirectional, pretrained_embedding=None, 
                  rnn_cell='gru', num_layers=1, dropout_p=0.5, beam_size=10, temperature=1.0, 
-                 train_sample_max=False, test_sample_max=True, beam_search_logic='bfs'):
+                 train_sample_max=False, test_sample_max=True, beam_search_logic='bfs',
+                 dataset_name='MSVD'):
         super(SemSynCNDecoder, self).__init__()
         
         self.hidden_size = hidden_size
@@ -405,10 +406,15 @@ class SemSynCNDecoder(nn.Module):
         self.merge2 = nn.Linear(self.hidden_size + 6144, self.hidden_size)
         self.out = nn.Linear(self.hidden_size, self.output_size)
         
-        self.v_sem_attn = Attention(self.in_seq_length, self.embedding_size, self.hidden_size, self.num_layers, self.num_directions, mode='soft')
-        self.v_syn_attn = Attention(self.in_seq_length, self.embedding_size, self.hidden_size, self.num_layers, self.num_directions, mode='soft')
-        self.se_sy_attn = Attention(self.in_seq_length, self.embedding_size, self.hidden_size, self.num_layers, self.num_directions, mode='soft')
-        
+        self.dataset_name = dataset_name
+        if dataset_name == 'MSVD':
+            self.v_sem_attn = Attention(self.in_seq_length, self.embedding_size, self.hidden_size, self.num_layers, self.num_directions, mode='soft')
+            self.v_syn_attn = Attention(self.in_seq_length, self.embedding_size, self.hidden_size, self.num_layers, self.num_directions, mode='soft')
+            self.se_sy_attn = Attention(self.in_seq_length, self.embedding_size, self.hidden_size, self.num_layers, self.num_directions, mode='soft')
+        elif dataset_name == 'MSR-VTT':
+            self.v_attn = Attention(self.in_seq_length, self.embedding_size, self.hidden_size*3, self.num_layers, self.num_directions, mode='soft')
+            self.s_attn = Attention(self.in_seq_length, self.embedding_size, self.hidden_size*3, self.num_layers, self.num_directions, mode='soft')
+
         self.__init_layers()
         
     def __init_layers(self):
@@ -461,10 +467,14 @@ class SemSynCNDecoder(nn.Module):
                 v_syn_h, v_syn_c = self.v_syn_layer.step(pos_emb, v_syn_h, v_syn_c, decoder_input, enc_hidden, v_feats, variational_dropout_p=0.1)
                 se_sy_h, se_sy_c = self.se_sy_layer.step(pos_emb, se_sy_h, se_sy_c, decoder_input, enc_hidden, v_feats, variational_dropout_p=0.1)
 
-                v_attn1 = self.v_sem_attn(v_feats, v_sem_h)
-                v_attn2 = self.v_syn_attn(v_feats, v_syn_h)
-                v_attn3 = self.se_sy_attn(v_feats, se_sy_h)
-                v_attn = (v_attn1 + v_attn2 + v_attn3) / 3
+                if self.dataset_name == 'MSVD':
+                    v_attn1 = self.v_sem_attn(v_feats, v_sem_h)
+                    v_attn2 = self.v_syn_attn(v_feats, v_syn_h)
+                    v_attn3 = self.se_sy_attn(v_feats, se_sy_h)
+                    v_attn = (v_attn1 + v_attn2 + v_attn3) / 3
+                elif self.dataset_name == 'MSR-VTT':
+                    h = torch.cat((v_sem_h,v_syn_h,se_sy_h),dim=1)
+                    v_attn = self.v_attn(v_feats, h)
                 
                 rnn_h = self.__adaptive_merge(rnn_h, v_attn, v_sem_h, v_syn_h, se_sy_h)
 
@@ -496,11 +506,15 @@ class SemSynCNDecoder(nn.Module):
                 v_syn_h, v_syn_c = self.v_syn_layer.step(pos_emb, v_syn_h, v_syn_c, decoder_input, enc_hidden, v_feats, variational_dropout_p=0.1)
                 se_sy_h, se_sy_c = self.se_sy_layer.step(pos_emb, se_sy_h, se_sy_c, decoder_input, enc_hidden, v_feats, variational_dropout_p=0.1)
 
-                v_attn1 = self.v_sem_attn(v_feats, v_sem_h)
-                v_attn2 = self.v_syn_attn(v_feats, v_syn_h)
-                v_attn3 = self.se_sy_attn(v_feats, se_sy_h)
-                v_attn = (v_attn1 + v_attn2 + v_attn3) / 3
-                
+                if self.dataset_name == 'MSVD':
+                    v_attn1 = self.v_sem_attn(v_feats, v_sem_h)
+                    v_attn2 = self.v_syn_attn(v_feats, v_syn_h)
+                    v_attn3 = self.se_sy_attn(v_feats, se_sy_h)
+                    v_attn = (v_attn1 + v_attn2 + v_attn3) / 3
+                elif self.dataset_name == 'MSR-VTT':
+                    h = torch.cat((v_sem_h,v_syn_h,se_sy_h),dim=1)
+                    v_attn = self.v_attn(v_feats, h)
+
                 rnn_h = self.__adaptive_merge(rnn_h, v_attn, v_sem_h, v_syn_h, se_sy_h)
                 
                 # compute word_logits

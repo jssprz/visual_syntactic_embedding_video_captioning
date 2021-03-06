@@ -4,4 +4,4 @@ https://s06.imfd.cl/04/github-data/SemSynAN/MSR-VTT/config.ini
 https://s06.imfd.cl/04/github-data/SemSynAN/MSR-VTT/corpus.pkl
 https://s06.imfd.cl/04/github-data/SemSynAN/MSR-VTT/resnext_eco.npy
 https://s06.imfd.cl/04/github-data/SemSynAN/MSR-VTT/tag_feats.npy
-https://s06.imfd.cl/04/github-data/SemSynAN/MSR-VTT/linspace16_resnext101_c3d_r1plus2d18.h5
+https://s06.imfd.cl/04/github-data/SemSynAN/MSR-VTT/linspace16_30_resnext101_r1plus2d18-c3d_features-cnn_sem_globals-eco_globals.h5

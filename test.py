@@ -71,29 +71,6 @@ if __name__ == '__main__':
                         rnn_cell=config.encoder_rnn_cell,
                         device='cpu')
 
-  # decoder = SemSynCNDecoder(in_seq_length=max_frames, 
-  #                           out_seq_length=max_words,
-  #                           n_feats=1024 + res_eco_features_size + cnn_global_size,
-  # #                              n_feats=cnn_feature_size+c3d_feature_size,
-  #                           n_tags=n_tags + 400, #+ 174,
-  #                           n_pos_emb=encoder.v_syn_emb_size,
-  #                           embedding_size=embedding_size,
-  #                           pretrained_embedding=pretrained_embedding,
-  #                           hidden_size=hidden_size, 
-  #                           rnn_in_size=rnn_in_size, 
-  #                           rnn_hidden_size=rnn_hidden_size,
-  #                           vocab=vocab,
-  #                           device='cpu',
-  #                           rnn_cell=config.decoder_rnn_cell,
-  #                           encoder_num_layers=config.encoder_num_layers,
-  #                           encoder_bidirectional=config.encoder_bidirectional,
-  #                           num_layers=config.decoder_num_layers,
-  #                           dropout_p=config.decoder_dropout_p,
-  #                           beam_size=config.decoder_beam_size,
-  #                           temperature=config.decoder_temperature, 
-  #                           train_sample_max=config.decoder_train_sample_max,
-  #                           test_sample_max=config.decoder_test_sample_max,
-  #                           beam_search_logic=config.decoder_beam_search_logic)
   decoder = SemSynCNDecoder(in_seq_length=config.max_frames, 
                             out_seq_length=config.max_words,
                             n_feats=res_eco_features_size + cnn_global_size,
@@ -116,7 +93,8 @@ if __name__ == '__main__':
                             temperature=config.decoder_temperature, 
                             train_sample_max=config.decoder_train_sample_max,
                             test_sample_max=config.decoder_test_sample_max,
-                            beam_search_logic=config.decoder_beam_search_logic)
+                            beam_search_logic=config.decoder_beam_search_logic,
+                            dataset_name=config.dataset_name)
 
   # Checkpoint
   checkpoint = torch.load(args.checkpoint_path, map_location='cpu')
@@ -131,6 +109,8 @@ if __name__ == '__main__':
 
   #load test set features
   test_vidxs = list(set(corpus[2][1]))
+
+  print(test_vidxs)
 
   with h5py.File(os.path.join(args.dataset_folder, config.features_path), 'r') as feats_file:
       print('loading visual feats...')
