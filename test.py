@@ -6,7 +6,7 @@ from utils import decode_from_tokens
 from vocabulary import Vocabulary
 from configuration_file import ConfigurationFile
 from model.encoder import SCNEncoder
-from model.decoder import VSCNAttnDecoder
+from model.decoder import SemSynCNDecoder
 
 import h5py
 import torch
@@ -52,14 +52,13 @@ if __name__ == '__main__':
   rnn_in_size = 300  #1024
   rnn_hidden_size = 1024
 
-  config = ConfigurationFile(os.path.join(args.dataset_folder, 'config.ini'), 'attn-vscn-max')
+  config = ConfigurationFile(os.path.join(args.dataset_folder, 'config.ini'), 'sem-syn-cn-max')
 
   # Models
   encoder = SCNEncoder(cnn_feature_size=cnn_feature_size,
                         c3d_feature_size=c3d_feature_size,
                         i3d_feature_size=i3d_feature_size,
                         eco_feature_size=eco_feature_size,
-                        cnn_global_size=cnn_global_size,
                         res_eco_features_size=res_eco_features_size,
                         n_tags=n_tags,
                         hidden_size=hidden_size,
@@ -72,12 +71,35 @@ if __name__ == '__main__':
                         rnn_cell=config.encoder_rnn_cell,
                         device='cpu')
 
-  decoder = SemSynCNDecoder(in_seq_length=max_frames, 
-                            out_seq_length=max_words,
-                            n_feats=1024 + res_eco_features_size + cnn_global_size,
-  #                              n_feats=cnn_feature_size+c3d_feature_size,
+  # decoder = SemSynCNDecoder(in_seq_length=max_frames, 
+  #                           out_seq_length=max_words,
+  #                           n_feats=1024 + res_eco_features_size + cnn_global_size,
+  # #                              n_feats=cnn_feature_size+c3d_feature_size,
+  #                           n_tags=n_tags + 400, #+ 174,
+  #                           n_pos_emb=encoder.v_syn_emb_size,
+  #                           embedding_size=embedding_size,
+  #                           pretrained_embedding=pretrained_embedding,
+  #                           hidden_size=hidden_size, 
+  #                           rnn_in_size=rnn_in_size, 
+  #                           rnn_hidden_size=rnn_hidden_size,
+  #                           vocab=vocab,
+  #                           device='cpu',
+  #                           rnn_cell=config.decoder_rnn_cell,
+  #                           encoder_num_layers=config.encoder_num_layers,
+  #                           encoder_bidirectional=config.encoder_bidirectional,
+  #                           num_layers=config.decoder_num_layers,
+  #                           dropout_p=config.decoder_dropout_p,
+  #                           beam_size=config.decoder_beam_size,
+  #                           temperature=config.decoder_temperature, 
+  #                           train_sample_max=config.decoder_train_sample_max,
+  #                           test_sample_max=config.decoder_test_sample_max,
+  #                           beam_search_logic=config.decoder_beam_search_logic)
+  decoder = SemSynCNDecoder(in_seq_length=config.max_frames, 
+                            out_seq_length=config.max_words,
+                            n_feats=res_eco_features_size + cnn_global_size,
+#                            n_feats=cnn_feature_size+c3d_feature_size,
                             n_tags=n_tags + 400, #+ 174,
-                            n_pos_emb=encoder.v_syn_emb_size,
+                            n_pos_emb=512,
                             embedding_size=embedding_size,
                             pretrained_embedding=pretrained_embedding,
                             hidden_size=hidden_size, 
@@ -127,7 +149,7 @@ if __name__ == '__main__':
   decoder.eval()
 
   with torch.no_grad():
-      video_encoded = encoder(cnn_feats, c3d_feats, cnn_globals, tags_globals, res_eco_globals)
+      video_encoded = encoder(cnn_feats, c3d_feats, cnn_globals, cnn_sem_globals, tags_globals, res_eco_globals)
       logits, tokens = decoder(video_encoded, None, teacher_forcing_ratio=0)
 
       scores = logits.max(dim=2)[0].mean(dim=1)

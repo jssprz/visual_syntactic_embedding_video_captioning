@@ -77,14 +77,14 @@ We use the ``val_references.txt`` and ``test_references.txt`` files for computin
 1. Download pre-trained models (at epoch 15)
 
 ```
-wget https://s06.imfd.cl/04/github-data/SemSynAN/MSVD/captioning_chkpt_15.pt -P pretrain/MSVD
+wget https://s06.imfd.cl/04/github-data/SemSynAN/MSVD/captioning_chkpt_41.pt -P pretrain/MSVD
 wget https://s06.imfd.cl/04/github-data/SemSynAN/MSR-VTT/captioning_chkpt_15.pt -P pretrain/MSR-VTT
 ```
 
 2. Generate captions for test samples
 
 ```
-python test.py -chckpt pretrain/MSVD/captioning_chkpt_15.pt -data data/MSVD/ -out results/MSVD/
+python test.py -chckpt pretrain/MSVD/captioning_chkpt_41.pt -data data/MSVD/ -out results/MSVD/
 python test.py -chckpt pretrain/MSR-VTT/captioning_chkpt_15.pt -data data/MSR-VTT/ -out results/MSR-VTT/
 ```
 
