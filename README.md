@@ -74,7 +74,7 @@ We use the ``val_references.txt`` and ``test_references.txt`` files for computin
 
 ### Testing
 
-1. Download pre-trained models (at epoch 15)
+1. Download pre-trained models (at epoch 41 and 15)
 
 ```
 wget https://s06.imfd.cl/04/github-data/SemSynAN/MSVD/captioning_chkpt_41.pt -P pretrain/MSVD

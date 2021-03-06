@@ -4,4 +4,4 @@ https://s06.imfd.cl/04/github-data/SemSynAN/MSVD/config.ini
 https://s06.imfd.cl/04/github-data/SemSynAN/MSVD/corpus.pkl
 https://s06.imfd.cl/04/github-data/SemSynAN/MSVD/resnext_eco.npy
 https://s06.imfd.cl/04/github-data/SemSynAN/MSVD/tag_feats.npy
-https://s06.imfd.cl/04/github-data/SemSynAN/MSVD/linspace16_resnext101_c3d_r1plus2d18.h5
+https://s06.imfd.cl/04/github-data/SemSynAN/MSVD/linspace16_20_resnext101_r1plus2d18-eco_globals.h5
