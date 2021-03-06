@@ -22,7 +22,7 @@ Video captioning is the task of predicting a semantic and syntactically correct 
 <table>
   <tr>
     <td style="text-align: center;"><img src="https://users.dcc.uchile.cl/~jeperez/media/2021/SemSynAN_model-with-features.png" height=300></td>
-    <td style="text-align: center;"><img src="https://users.dcc.uchile.cl/~jeperez/media/2021/SemSynAN_visual-syntax.png" height=300></td>
+    <td style="text-align: center;"><img src="https://users.dcc.uchile.cl/~jeperez/media/2021/SemSynAN_visual-syntax-embedding.png" height=300></td>
   </tr>
   <tr>
     <td>Video Captioning with Visual-Syntactic Embedding (SemSynAN)</td>
