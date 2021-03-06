@@ -108,9 +108,7 @@ if __name__ == '__main__':
   decoder.load_state_dict(checkpoint['decoder'])
 
   #load test set features
-  test_vidxs = list(set(corpus[2][1]))
-
-  print(test_vidxs)
+  test_vidxs = sorted(list(set(corpus[2][1])))
 
   with h5py.File(os.path.join(args.dataset_folder, config.features_path), 'r') as feats_file:
       print('loading visual feats...')
