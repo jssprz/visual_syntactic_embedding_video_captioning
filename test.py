@@ -6,7 +6,7 @@ from utils import decode_from_tokens
 from vocabulary import Vocabulary
 from configuration_file import ConfigurationFile
 from model.encoder import SCNEncoder
-from model.decoder import SemSynCNDecoder
+from model.decoder import SemSynANDecoder
 
 import h5py
 import torch
@@ -71,7 +71,7 @@ if __name__ == '__main__':
                         rnn_cell=config.encoder_rnn_cell,
                         device='cpu')
 
-  decoder = SemSynCNDecoder(in_seq_length=config.max_frames, 
+  decoder = SemSynANDecoder(in_seq_length=config.max_frames, 
                             out_seq_length=config.max_words,
                             n_feats=res_eco_features_size + cnn_global_size,
 #                            n_feats=cnn_feature_size+c3d_feature_size,

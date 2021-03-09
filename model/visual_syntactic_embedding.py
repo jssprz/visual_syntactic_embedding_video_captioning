@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class MLP(nn.Module):
     def __init__(self, in_size, hidden_sizes, out_size, dropout_p=0.5, have_last_bn=False, 
                  pretrained_model_path=''):

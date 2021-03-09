@@ -6,10 +6,11 @@ from torch.autograd import Variable
 from utils import get_init_weights
 from model.attention import Attention
 
-class SCNDecoder(nn.Module):
+
+class VNCLCell(nn.Module):
     def __init__(self, in_seq_length, out_seq_length, n_feats, n_tags, embedding_size, hidden_size, rnn_in_size, rnn_hidden_size, vocab, encoder_num_layers, encoder_bidirectional, 
                  pretrained_embedding=None, rnn_cell='gru', num_layers=1, dropout_p=0.5, beam_size=10, temperature=1.0, train_sample_max=False, test_sample_max=True, beam_search_logic='bfs', have_bn=False, var_dropout='per-gate'):
-        super(SCNDecoder, self).__init__()
+        super(VNCLCell, self).__init__()
         self.hidden_size = hidden_size
         self.embedding_size = embedding_size
         self.output_size = len(vocab)
@@ -105,26 +106,25 @@ class SCNDecoder(nn.Module):
                 nn.init.xavier_normal_(m.weight)
 
     def __dropout(self, x, keep_prob, mask_for):
-#         if not self.training or keep_prob >= 1.:
-#             return x
+        # if not self.training or keep_prob >= 1.:
+        #     return x
         
-#         if mask_for in self.dropM:
-#             mask = self.dropM[mask_for]
-#         else:
-#             # op1
-#     #         mask = Binomial(probs=keep_prob).sample(x.size()).to(x.device)  # máscara de acuerdo a keep_prob
+        # if mask_for in self.dropM:
+        #     mask = self.dropM[mask_for]
+        # else:
+        #     # op1
+        #     # mask = Binomial(probs=keep_prob).sample(x.size()).to(x.device)  # máscara de acuerdo a keep_prob
 
-#             # op2
-#             mask = x.new_empty(x.size(), requires_grad=False).bernoulli_(keep_prob)
+        #     # op2
+        #     mask = x.new_empty(x.size(), requires_grad=False).bernoulli_(keep_prob)
             
-#             self.dropM[mask_for] = mask
+        #     self.dropM[mask_for] = mask
             
-#         assert x.device == mask.device, 'mask and x must be in the same device'
+        # assert x.device == mask.device, 'mask and x must be in the same device'
         
-#         return x.masked_fill(mask==0, 0) * (1.0 / keep_prob)
+        # return x.masked_fill(mask==0, 0) * (1.0 / keep_prob)
         return x
         
-    
     def precompute_mats(self, v, s, variational_dropout_p):
         self.dropM = {}
                 
@@ -175,8 +175,6 @@ class SCNDecoder(nn.Module):
         v = (temp3 * temp4) @ Cc
         h = (temp5 * temp6) @ Uc
         
-        assert torch.all(torch.tensor([x.device == t.device for t in [v,h,b]])), 'all tensor must be in the same device ({}, {}, {}, {})'.format(x.device, v.device, h.device, b.device)
-        
         logits = x + v + h + b
         
         if self.have_bn:
@@ -184,7 +182,7 @@ class SCNDecoder(nn.Module):
         
         return activation(logits)
     
-    def step(self, s, rnn_h, rnn_c, decoder_input, encoder_hidden, encoder_outputs, variational_dropout_p):
+    def forward(self, s, rnn_h, rnn_c, decoder_input, encoder_hidden, encoder_outputs, variational_dropout_p):
         keep_prob = 1 - variational_dropout_p
         if self.var_dropout == 'per-gate':
             # use a distinct mask for each gate
@@ -249,114 +247,15 @@ class SCNDecoder(nn.Module):
         
         return rnn_h, rnn_c 
 
-    def forward_fn(self, video_pool, encoder_tags, encoder_hidden, encoder_outputs, captions, teacher_forcing_ratio=0.5):
-        # Determine whether it is an inferred mode based on whether it is passed into caption
-#         infer = captions is None
-        
-        batch_size = encoder_outputs.size(0)
 
-        # (batch_size x 1)
-#         decoder_input = Variable(torch.LongTensor(batch_size, 1).fill_(self.vocab('<start>'))).to(video_pool.device)
-
-        # (batch_size x embedding_size)
-        decoder_input = Variable(torch.Tensor(batch_size, self.embedding_size).fill_(0)).to(video_pool.device)
-        
-        if type(encoder_hidden) is tuple:
-            # (encoder_n_layers * encoder_num_directions x batch_size x hidden_size) -> (encoder_n_layers x encoder_num_directions x batch_size x hidden_size) 
-            rnn_h = encoder_hidden[0].view(self.encoder_num_layers, self.encoder_num_directions, batch_size, self.hidden_size)
-            rnn_c = encoder_hidden[1].view(self.encoder_num_layers, self.encoder_num_directions, batch_size, self.hidden_size)
-        
-        # get h_n of forward direction of the last num_layers of encoder
-        # (n_layers x batch_size x hidden_size)
-        # rnn_h = torch.cat([rnn_h[-i,0,:,:].unsqueeze(0) for i in range(self.num_layers, 0, -1)], dim=0)
-        
-        rnn_h = Variable(torch.cat([rnn_h[-i,0,:,:] for i in range(self.num_layers, 0, -1)], dim=0)).to(video_pool.device)
-        rnn_c = Variable(torch.cat([rnn_c[-i,0,:,:] for i in range(self.num_layers, 0, -1)], dim=0)).to(video_pool.device)
-
-#         rnn_h = Variable(torch.zeros(batch_size, self.hidden_size)).to(video_pool.device)
-#         rnn_c = Variable(torch.zeros(batch_size, self.hidden_size)).to(video_pool.device)
-
-        outputs = []
-        
-        s = self.__dropout(encoder_tags, 1 - self.dropout_p)
-        v = self.__dropout(video_pool, 1 - self.dropout_p)
-        
-        self.precompute_mats(v, s)
-        
-        if not self.training:
-            words = []
-            for step in range(self.out_seq_length):
-                rnn_h, rnn_c = self.step(s, rnn_h, rnn_c, decoder_input, encoder_hidden, encoder_outputs)
-
-                # compute word_logits
-                # (batch_size x output_size)
-                word_logits = self.out(rnn_h)
-
-                # compute word probs
-                if self.test_sample_max:
-                    # sample max probailities
-                    # (batch_size x 1), (batch_size x 1)
-                    word_id = word_logits.max(dim=1)[1]
-                else:
-                    # sample from distribution
-                    # (batch_size x 1)
-                    word_id = torch.multinomial(torch.softmax(word_logits, dim=1), 1)
-                
-                # (batch_size x 1) -> (batch_size x embedding_size)
-                decoder_input = self.embedding(word_id).squeeze(1)
-                
-                outputs.append(word_logits)
-                words.append(word_id)
-                    
-            return torch.cat([o.unsqueeze(1) for o in outputs], dim=1).contiguous(), torch.cat([w.unsqueeze(1) for w in words], dim=1).contiguous()
-        else:
-            for seq_pos in range(self.out_seq_length):
-                rnn_h, rnn_c = self.step(s, rnn_h, rnn_c, decoder_input, encoder_hidden, encoder_outputs)
-                
-                # compute word_logits
-                # (batch_size x output_size)
-                word_logits = self.out(rnn_h)
-
-                use_teacher_forcing = True if random.random() < teacher_forcing_ratio or seq_pos == 0 else False
-                if use_teacher_forcing:
-                    decoder_input = captions[:, seq_pos]  # use the correct words, (batch_size x 1)
-                elif self.train_sample_max:
-                    # select the words ids with the max probability,
-                    # (batch_size x 1)
-                    decoder_input = word_logits.max(1)[1]
-                else:
-                    # sample words from probability distribution
-                    # (batch_size x 1)
-                    decoder_input = torch.multinomial(torch.softmax(word_logits, dim=1), 1)
-
-                # (batch_size x 1) -> (batch_size x embedding_size)
-                decoder_input = self.embedding(decoder_input).squeeze(1)
-                decoder_input = self.__dropout(decoder_input, 1 - self.dropout_p)
-                
-                outputs.append(word_logits)
-            
-            # (batch_size x out_seq_length x output_size), none
-            return torch.cat([o.unsqueeze(1) for o in outputs], dim=1).contiguous(), None
-
-    def forward(self, videos_encodes, captions, teacher_forcing_ratio=0.5):
-        return self.forward_fn(video_pool=videos_encodes[3], 
-                               encoder_tags=videos_encodes[2], 
-                               encoder_hidden=videos_encodes[1], 
-                               encoder_outputs=videos_encodes[0], 
-                               captions=captions, 
-                               teacher_forcing_ratio=teacher_forcing_ratio)
-
-    def sample(self, videos_encodes):
-        return self.forward(videos_encodes, None, teacher_forcing_ratio=0.0)
-
-class SemSynCNDecoder(nn.Module):
+class SemSynANDecoder(nn.Module):
     def __init__(self, in_seq_length, out_seq_length, n_feats, n_tags, n_pos_emb, 
                  embedding_size, hidden_size, rnn_in_size, rnn_hidden_size, vocab, device, 
                  encoder_num_layers, encoder_bidirectional, pretrained_embedding=None, 
                  rnn_cell='gru', num_layers=1, dropout_p=0.5, beam_size=10, temperature=1.0, 
                  train_sample_max=False, test_sample_max=True, beam_search_logic='bfs',
                  dataset_name='MSVD'):
-        super(SemSynCNDecoder, self).__init__()
+        super(SemSynANDecoder, self).__init__()
         
         self.hidden_size = hidden_size
         self.embedding_size = embedding_size
@@ -384,19 +283,19 @@ class SemSynCNDecoder(nn.Module):
             self.embedding = nn.Embedding(self.output_size, embedding_size)
         self.embedd_drop = nn.Dropout(dropout_p)
         
-        self.v_sem_layer = SCNDecoder(in_seq_length, out_seq_length, n_feats, n_tags, embedding_size, hidden_size,
+        self.v_sem_layer = VNCLCell(in_seq_length, out_seq_length, n_feats, n_tags, embedding_size, hidden_size,
                                       rnn_in_size, rnn_hidden_size, vocab, encoder_num_layers, 
                                       encoder_bidirectional, pretrained_embedding, rnn_cell, num_layers, dropout_p, 
                                       beam_size, temperature, train_sample_max, test_sample_max, beam_search_logic,
                                       have_bn=False)
         
-        self.v_syn_layer = SCNDecoder(in_seq_length, out_seq_length, n_feats, n_pos_emb, embedding_size, hidden_size,
+        self.v_syn_layer = VNCLCell(in_seq_length, out_seq_length, n_feats, n_pos_emb, embedding_size, hidden_size,
                                       rnn_in_size, rnn_hidden_size, vocab, encoder_num_layers, 
                                       encoder_bidirectional, pretrained_embedding, rnn_cell, num_layers, dropout_p, 
                                       beam_size, temperature, train_sample_max, test_sample_max, beam_search_logic,
                                       have_bn=False)
         
-        self.se_sy_layer = SCNDecoder(in_seq_length, out_seq_length, n_tags, n_pos_emb, embedding_size, hidden_size,
+        self.se_sy_layer = VNCLCell(in_seq_length, out_seq_length, n_tags, n_pos_emb, embedding_size, hidden_size,
                                       rnn_in_size, rnn_hidden_size, vocab, encoder_num_layers, 
                                       encoder_bidirectional, pretrained_embedding, rnn_cell, num_layers, dropout_p, 
                                       beam_size, temperature, train_sample_max, test_sample_max, beam_search_logic,
@@ -460,12 +359,12 @@ class SemSynCNDecoder(nn.Module):
         self.v_syn_layer.precompute_mats(v_pool, pos_emb, variational_dropout_p=0.1)
         self.se_sy_layer.precompute_mats(s_pool, pos_emb, variational_dropout_p=0.1)
         
+        words = []
         if infer:
-            words = []
             for step in range(self.out_seq_length):               
-                v_sem_h, v_sem_c = self.v_sem_layer.step(s_pool, v_sem_h, v_sem_c, decoder_input, enc_hidden, v_feats, variational_dropout_p=0.1)
-                v_syn_h, v_syn_c = self.v_syn_layer.step(pos_emb, v_syn_h, v_syn_c, decoder_input, enc_hidden, v_feats, variational_dropout_p=0.1)
-                se_sy_h, se_sy_c = self.se_sy_layer.step(pos_emb, se_sy_h, se_sy_c, decoder_input, enc_hidden, v_feats, variational_dropout_p=0.1)
+                v_sem_h, v_sem_c = self.v_sem_layer(s_pool, v_sem_h, v_sem_c, decoder_input, enc_hidden, v_feats, variational_dropout_p=0.1)
+                v_syn_h, v_syn_c = self.v_syn_layer(pos_emb, v_syn_h, v_syn_c, decoder_input, enc_hidden, v_feats, variational_dropout_p=0.1)
+                se_sy_h, se_sy_c = self.se_sy_layer(pos_emb, se_sy_h, se_sy_c, decoder_input, enc_hidden, v_feats, variational_dropout_p=0.1)
 
                 if self.dataset_name == 'MSVD':
                     v_attn1 = self.v_sem_attn(v_feats, v_sem_h)
@@ -500,11 +399,10 @@ class SemSynCNDecoder(nn.Module):
                     
             return torch.cat([o.unsqueeze(1) for o in outputs], dim=1).contiguous(), torch.cat([w.unsqueeze(1) for w in words], dim=1).contiguous()
         else:
-            words = []
             for seq_pos in range(self.out_seq_length):
-                v_sem_h, v_sem_c = self.v_sem_layer.step(s_pool, v_sem_h, v_sem_c, decoder_input, enc_hidden, v_feats, variational_dropout_p=0.1)
-                v_syn_h, v_syn_c = self.v_syn_layer.step(pos_emb, v_syn_h, v_syn_c, decoder_input, enc_hidden, v_feats, variational_dropout_p=0.1)
-                se_sy_h, se_sy_c = self.se_sy_layer.step(pos_emb, se_sy_h, se_sy_c, decoder_input, enc_hidden, v_feats, variational_dropout_p=0.1)
+                v_sem_h, v_sem_c = self.v_sem_layer(s_pool, v_sem_h, v_sem_c, decoder_input, enc_hidden, v_feats, variational_dropout_p=0.1)
+                v_syn_h, v_syn_c = self.v_syn_layer(pos_emb, v_syn_h, v_syn_c, decoder_input, enc_hidden, v_feats, variational_dropout_p=0.1)
+                se_sy_h, se_sy_c = self.se_sy_layer(pos_emb, se_sy_h, se_sy_c, decoder_input, enc_hidden, v_feats, variational_dropout_p=0.1)
 
                 if self.dataset_name == 'MSVD':
                     v_attn1 = self.v_sem_attn(v_feats, v_sem_h)
@@ -543,7 +441,6 @@ class SemSynCNDecoder(nn.Module):
             # (batch_size x out_seq_length x output_size), none
             return torch.cat([o.unsqueeze(1) for o in outputs], dim=1).contiguous(), torch.cat([w.unsqueeze(1) for w in words], dim=1).contiguous()
         
-    
     def forward(self, videos_encodes, captions, teacher_forcing_ratio=0.5):
         return self.forward_fn(v_pool=videos_encodes[3], 
                                s_pool=videos_encodes[2],
