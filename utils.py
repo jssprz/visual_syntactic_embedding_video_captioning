@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 def decode_from_tokens(tokens, vocab):
   words = []
   for token in tokens:
