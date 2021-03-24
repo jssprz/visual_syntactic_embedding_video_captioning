@@ -109,7 +109,7 @@ python evaluate.py -gen results/MSR-VTT/predictions.txt -ref data/MSR-VTT/test_r
 ## <a name="citation"></a>Citation
 
 ```
-@article{PerezMartin2020AttentiveCaptioning,
+@inproceedings{PerezMartin2020AttentiveCaptioning,
 	title={Improving Video Captioning with Temporal Composition of a Visual-Syntactic Embedding},
 	author={Jesus Perez-Martin and Benjamin Bustos and Jorge Pérez},
 	booktitle={IEEE Winter Conference on Applications of Computer Vision},
