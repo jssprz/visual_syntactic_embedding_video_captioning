@@ -55,7 +55,7 @@ For extracting your own visual features representations you can use our [visual-
 ### Training
 
 If you want to train your own models, you can reutilize the datasets' information stored and tokenized in the ``corpus.pkl`` files.
-For constructing this files you can use the scripts we provide in [video_captioning_dataset](https://github.com/jssprz/video_captioning_datasets) module.
+For constructing these files you can use the scripts we provide in [video_captioning_dataset](https://github.com/jssprz/video_captioning_datasets) module.
 Basically, the content of these files is organized as follow:
 
 0: ``train_data``: captions and idxs of training videos in format ``[corpus_widxs, vidxs]``, where:
